@@ -1,0 +1,11 @@
+/home/parallels/Desktop/OS/rCore-Tutorial-v3/easy-fs-fuse/target/release/deps/ppv_lite86-a6feee9ed6f337c0.rmeta: /home/parallels/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.10/src/lib.rs /home/parallels/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.10/src/soft.rs /home/parallels/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.10/src/types.rs /home/parallels/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.10/src/x86_64/mod.rs /home/parallels/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.10/src/x86_64/sse2.rs
+
+/home/parallels/Desktop/OS/rCore-Tutorial-v3/easy-fs-fuse/target/release/deps/libppv_lite86-a6feee9ed6f337c0.rlib: /home/parallels/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.10/src/lib.rs /home/parallels/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.10/src/soft.rs /home/parallels/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.10/src/types.rs /home/parallels/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.10/src/x86_64/mod.rs /home/parallels/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.10/src/x86_64/sse2.rs
+
+/home/parallels/Desktop/OS/rCore-Tutorial-v3/easy-fs-fuse/target/release/deps/ppv_lite86-a6feee9ed6f337c0.d: /home/parallels/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.10/src/lib.rs /home/parallels/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.10/src/soft.rs /home/parallels/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.10/src/types.rs /home/parallels/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.10/src/x86_64/mod.rs /home/parallels/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.10/src/x86_64/sse2.rs
+
+/home/parallels/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.10/src/lib.rs:
+/home/parallels/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.10/src/soft.rs:
+/home/parallels/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.10/src/types.rs:
+/home/parallels/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.10/src/x86_64/mod.rs:
+/home/parallels/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.10/src/x86_64/sse2.rs:
