@@ -1,0 +1,18 @@
+#![no_std]
+#![no_main]
+#![feature(llvm_asm)]
+
+extern crate user_lib;
+
+/// 由于 rustsbi 的问题，该程序无法正确退出
+/// > rustsbi 0.2.0-alpha.1 已经修复，可以正常退出
+
+#[no_mangle]
+pub fn main() -> ! {
+    user_lib::print!("BAD REG");
+    let mut sstatus: usize;
+    unsafe {
+        llvm_asm!("csrr $0, sstatus" : "=r"(sstatus) ::: "volatile");
+    }
+    panic!("(-_-) I get sstatus:{:x}\n", sstatus);
+}
