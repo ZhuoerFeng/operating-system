@@ -11,8 +11,6 @@ SBI ?= rustsbi
 BOOTLOADER := ../bootloader/$(SBI)-$(BOARD).bin
 K210_BOOTLOADER_SIZE := 131072
 
-LOG ?= INFO
-
 # KERNEL ENTRY
 ifeq ($(BOARD), qemu)
 	KERNEL_ENTRY_PA := 0x80200000
@@ -27,8 +25,6 @@ K210-BURNER = ../tools/kflash.py
 # Binutils
 OBJDUMP := rust-objdump --arch-name=riscv64
 OBJCOPY := rust-objcopy --binary-architecture=riscv64
-
-RUSTFLAGS = "-Clink-arg=-Tsrc/linker.ld -Cforce-frame-pointers=yes --cfg LOG=\"$(LOG)\""
 
 # Disassembly
 DISASM ?= -x
@@ -45,10 +41,12 @@ $(KERNEL_BIN): kernel
 	@$(OBJCOPY) $(KERNEL_ELF) --strip-all -O binary $@
 
 kernel:
+	@cd ../user && make build
 	@echo Platform: $(BOARD)
 	@cp src/linker-$(BOARD).ld src/linker.ld
-	@RUSTFLAGS=$(RUSTFLAGS) cargo build --release
+	@cargo build --release
 	@rm src/linker.ld
+
 
 clean:
 	@cargo clean
