@@ -1,7 +1,0 @@
-bootloader/
-easy-fs-fuse/
-user/
-Makefile
-rust-toolchain
-Dockerfile
-LICENSE
