@@ -100,27 +100,27 @@
    use config::BIG_STRIDE;
    
    impl PartialOrd for Stride {
-       fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-           let diff: u64;
-           if self.0 > other.0 {
-           		diff = self.0 - other.0;
-           } else {
-           		diff = other.0 - self.0
-           }
-           if 2 * diff > BIG_STRIDE {
-           		if self.0 > other.0 {
-           				Some(Ordering::Less)
-             	}	else {
-   								Some(Ordering::Greater)
-             	}
-         	} else {
-         			if self.0 > other.0 {
-             			Some(Ordering::Greater)
-           		}	else {
-             			Some(Ordering::Less)
-           		}
-         	}
-       }
+   	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+   		let diff: u64;
+   		if self.0 > other.0 {
+   			diff = self.0 - other.0;
+       } else {
+   			diff = other.0 - self.0
+   		}
+   		if 2 * diff > BIG_STRIDE {
+   			if self.0 > other.0 {
+   				Some(Ordering::Less)
+   			}	else {
+   				Some(Ordering::Greater)
+   			}
+   		} else {
+   			if self.0 > other.0 {
+   				Some(Ordering::Greater)
+   			}	else {
+   				Some(Ordering::Less)
+   			}
+   		}
+   	}
    }
    
    impl PartialEq for Person {
