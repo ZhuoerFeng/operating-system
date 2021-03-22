@@ -2,7 +2,7 @@ mod context;
 mod switch;
 mod task;
 
-use crate::config::{MAX_APP_NUM, BIG_STRIDE};
+use crate::config::{MAX_APP_NUM, BIG_STRIDE, APP_BASE_ADDRESS, APP_SIZE_LIMIT};
 use crate::loader::{get_num_app, init_app_cx};
 use core::cell::RefCell;
 use lazy_static::*;
@@ -63,6 +63,12 @@ impl TaskManager {
         }
     }
 
+    fn get_cur_app(&self) -> usize {
+        let inner = self.inner.borrow_mut();
+        let current = inner.current_task;
+        current
+    }
+
     fn set_current_priority(&self, prio : isize) {
         let mut inner = self.inner.borrow_mut();
         let current = inner.current_task;
@@ -104,7 +110,6 @@ impl TaskManager {
             }
         }
         if n == -1 {
-            // panic!("No app available");
             None
         } else {
             Some(n as usize)
@@ -128,6 +133,16 @@ impl TaskManager {
             }
         } else {
             panic!("All applications completed!");
+        }
+    }
+
+    fn in_app_room(&self, addr : usize, len: usize) -> bool {
+        let inner = self.inner.borrow_mut();
+        let current = inner.current_task;
+        if addr >= APP_BASE_ADDRESS + APP_SIZE_LIMIT * current && addr + len < APP_BASE_ADDRESS + APP_SIZE_LIMIT * (current + 1) {
+            true
+        } else {
+            false
         }
     }
 }
@@ -160,4 +175,12 @@ pub fn exit_current_and_run_next() {
 
 pub fn set_current_priority(prio : isize) {
     TASK_MANAGER.set_current_priority(prio);
+}
+
+pub fn in_app(addr : usize, len:usize) ->bool {
+    TASK_MANAGER.in_app_room(addr, len)
+}
+
+pub fn get_cur_app() -> usize {
+    TASK_MANAGER.get_cur_app()
 }

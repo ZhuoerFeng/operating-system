@@ -8,6 +8,8 @@ pub mod console;
 mod syscall;
 mod lang_items;
 
+pub use crate::console::STDOUT;
+
 #[no_mangle]
 #[link_section = ".text.entry"]
 pub extern "C" fn _start() -> ! {
