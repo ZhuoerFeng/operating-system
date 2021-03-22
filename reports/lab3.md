@@ -14,11 +14,19 @@
 
 ![1](lab3/1.png)
 
+可以看出进程成功地设置了优先级，并且输出了内容信息。
+
 ![2](lab3/2.png)
+
+可以看出进程使用yield_实现了频繁的切换。
 
 ![3](lab3/3.png)
 
+可以看exicode，它们与priority基本上呈正比关系，比例k约为7.3
+
 ![4](lab3/4.png)
+
+图中的死循环被杀死，同时操作系统没有崩。
 
 ## 简答问题
 
@@ -26,13 +34,11 @@
 
    采用了三种进程调度策略：协作式调度、抢占式调度和stride调度。
 
-   协作式调度通过进程主动释放CPU进行切换，抢占式和stride调度通过CPU产生时钟中断进行切换；
+   协作式调度通过进程主动释放CPU进行切换，抢占式和stride调度通过CPU产生时钟中断进行切换或者程序主动释放；stride与抢占式相同。
 
-   协作式调度
+   协作式调度与抢占式调度使用排队的方式选择下一个运行的进程，即在任务结束后扫描目前待执行的进程，遇到第一个就选择之；而stride调度对每个进程维护stride值，选择待执行进程中最小stride的进程执行之。
 
-   stride调度对每个进程维护stride值，
-
-   
+   协作式调度新加入进程加入后进入等待状态，待有进程释放CPU资源后进行竞争；抢占式调度与协作式调度类似；stride调度则将进入的新进程的优先级设置到最大，并且维护其stride初始化为0，进入等待执行的状态，随后，随着进程的执行更新其stride。
 
 2. **在 C 版代码中，同样实现了类似 RR 的调度算法，但是由于没有 VecDeque 这样直接可用的数据结构（Rust很棒对不对），C 版代码的实现严格来讲存在一定问题。大致情况如下：C版代码使用一个进程池（也就是一个 struct proc 的数组）管理进程调度，当一个时间片用尽后，选择下一个进程逻辑在 [chapter３相关代码](https://github.com/DeathWish5/ucore-Tutorial/blob/ch3/kernel/proc.c#L60-L74) ，也就是当第 i 号进程结束后，会以 i -> max_num -> 0 -> i 的顺序遍历进程池，直到找到下一个就绪进程。C 版代码新进程在调度池中的位置选择见 [chapter5相关代码](https://github.com/DeathWish5/ucore-Tutorial/blob/ch5/kernel/proc.c#L90-L98) ，也就是从头到尾遍历进程池，找到第一个空位。**
 
@@ -54,13 +60,13 @@
 
 其他细节在表中的数组一行，追踪了`VecDeqeue`的信息。
 
-| 时间点   | 0              | 1    | 2       | 3         | 4       | 5       | 6       | 7       |
-| -------- | -------------- | ---- | ------- | --------- | ------- | ------- | ------- | ------- |
-| 运行进程 |                | p1   | p2      | p3        | P5      | p1      | p3      | P4      |
-| 事件     | p1、p2、p3产生 |      | p2 结束 | p4 p5产生 | p5 结束 | p1 结束 | p3 结束 | p4 结束 |
-| 优先队列 |                |      |         |           |         |         |         |         |
+| 时间点   | 0              | 1        | 2       | 3           | 4        | 5       | 6       | 7       |
+| -------- | -------------- | -------- | ------- | ----------- | -------- | ------- | ------- | ------- |
+| 运行进程 |                | p1       | p2      | p3          | P5       | p1      | p3      | P4      |
+| 事件     | p1、p2、p3产生 |          | p2 结束 | p4 p5产生   | p5 结束  | p1 结束 | p3 结束 | p4 结束 |
+| 优先队列 | p1 p2 p3       | p2 p3 p1 | p3 p1   | p4 p5 p1 p3 | p5 p1 p3 | p1 p3   | P3      |         |
 
-
+在我们Rust中，所使用的天然是一个数组，我们假设是一个优先队列，并且假设p1 p3需要运行2个时间片才结束。
 
 3. **stride 算法深入**
 
@@ -91,27 +97,29 @@
    
    struct Stride(u64);
    
+   use config::BIG_STRIDE;
+   
    impl PartialOrd for Stride {
        fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
            let diff: u64;
            if self.0 > other.0 {
-           	diff = self.0 - other.0;
+           		diff = self.0 - other.0;
            } else {
-           	diff = other.0 - self.0
+           		diff = other.0 - self.0
            }
            if 2 * diff > BIG_STRIDE {
-           	if self.0 > other.0 {
-           		Some(Ordering::Less)
-             }	else {
-   						Some(Ordering::Greater)
-             }
-         } else {
-         	if self.0 > other.0 {
-             Some(Ordering::Greater)
-           }	else {
-             Some(Ordering::Less)
-           }
-         }
+           		if self.0 > other.0 {
+           				Some(Ordering::Less)
+             	}	else {
+   								Some(Ordering::Greater)
+             	}
+         	} else {
+         			if self.0 > other.0 {
+             			Some(Ordering::Greater)
+           		}	else {
+             			Some(Ordering::Less)
+           		}
+         	}
        }
    }
    
