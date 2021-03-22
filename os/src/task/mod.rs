@@ -8,6 +8,7 @@ use core::cell::RefCell;
 use lazy_static::*;
 use switch::__switch;
 use task::{TaskControlBlock, TaskStatus};
+use crate::timer::get_time_ms;
 
 pub use context::TaskContext;
 
@@ -19,6 +20,7 @@ pub struct TaskManager {
 struct TaskManagerInner {
     tasks: [TaskControlBlock; MAX_APP_NUM],
     current_task: usize,
+    last_t: usize,
 }
 
 unsafe impl Sync for TaskManager {}
@@ -45,6 +47,7 @@ lazy_static! {
             inner: RefCell::new(TaskManagerInner {
                 tasks,
                 current_task: 0,
+                last_t: 0,
             }),
         }
     };
@@ -79,11 +82,13 @@ impl TaskManager {
         let mut inner = self.inner.borrow_mut();
         let current = inner.current_task;
         inner.tasks[current].task_status = TaskStatus::Ready;
-        if inner.tasks[current].task_start > 1001 {
+        let new_t = get_time_ms();
+        inner.tasks[current].task_start += new_t as isize - inner.last_t as isize;
+        inner.last_t = new_t;
+        if inner.tasks[current].task_start > 10 * 1000 {
             inner.tasks[current].task_status = TaskStatus::Exited;
         } else {
-            inner.tasks[current].task_start += 1;
-            inner.tasks[current].task_stride += BIG_STRIDE as isize / inner.tasks[current].task_prio as isize;
+            inner.tasks[current].task_stride += (BIG_STRIDE as isize) / (inner.tasks[current].task_prio as isize);
         }   
     }
 
@@ -101,7 +106,7 @@ impl TaskManager {
             // .find(|id| {
             //     inner.tasks[*id].task_status == TaskStatus::Ready
             // })
-        let mut small = 0xFFFF_FFFF_FFFF_FFFF as u64;
+        let mut small = (BIG_STRIDE * BIG_STRIDE) as u64;
         let mut n = -1 as isize;
         for item in a {
             if (inner.tasks[item].task_status == TaskStatus::Ready) && ((inner.tasks[item].task_stride as u64) < small) {
