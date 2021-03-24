@@ -18,7 +18,7 @@ pub fn sys_write(fd: usize, buf: *const u8, len: usize) -> isize {
             }
         },
         _ => {
-            panic!("Unsupported fd in sys_write!");
+            -1
         }
     }
 }
