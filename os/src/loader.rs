@@ -86,9 +86,9 @@ pub fn init_app_cx(app_id: usize) -> &'static TaskContext {
     )
 }
 
-pub fn in_user_stack(app_num : usize, addr: usize, len:usize) -> bool {
+pub fn in_user_stack(app_num : usize, sp: usize, addr: usize, len:usize) -> bool {
     let a = USER_STACK[app_num].get_sp();
-    if addr + len <= a && addr + USER_STACK_SIZE >= a {
+    if addr + len <= a && addr >= sp {
         true
     } else {
         false
