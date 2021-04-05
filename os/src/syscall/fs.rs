@@ -1,5 +1,5 @@
 use crate::mm::translated_byte_buffer;
-use crate::task::current_user_token;
+use crate::task::{current_user_token};
 
 const FD_STDOUT: usize = 1;
 
@@ -13,7 +13,8 @@ pub fn sys_write(fd: usize, buf: *const u8, len: usize) -> isize {
             len as isize
         },
         _ => {
-            panic!("Unsupported fd in sys_write!");
+            // panic!("Unsupported fd in sys_write!");
+            -1
         }
     }
 }

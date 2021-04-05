@@ -37,7 +37,7 @@ lazy_static! {
 
 pub struct MemorySet {
     page_table: PageTable,
-    areas: Vec<MapArea>,
+    pub areas: Vec<MapArea>,
 }
 
 impl MemorySet {
@@ -58,6 +58,18 @@ impl MemorySet {
             MapType::Framed,
             permission,
         ), None);
+    }
+    pub fn remove_framed_area(&mut self, start_va: VirtAddr, end_va: VirtAddr) {
+        for area in &mut self.areas {
+            if area.vpn_range.get_start() == start_va.floor() && area.vpn_range.get_end() == end_va.floor() {
+                area.unmap(&mut self.page_table);
+                area.vpn_range = VPNRange::new(
+                    VirtPageNum::from(0),
+                    VirtPageNum::from(0),
+                );
+                break;
+            }
+        }
     }
     fn push(&mut self, mut map_area: MapArea, data: Option<&[u8]>) {
         map_area.map(&mut self.page_table);
@@ -191,10 +203,10 @@ impl MemorySet {
 }
 
 pub struct MapArea {
-    vpn_range: VPNRange,
-    data_frames: BTreeMap<VirtPageNum, FrameTracker>,
-    map_type: MapType,
-    map_perm: MapPermission,
+    pub vpn_range: VPNRange,
+    pub data_frames: BTreeMap<VirtPageNum, FrameTracker>,
+    pub map_type: MapType,
+    pub map_perm: MapPermission,
 }
 
 impl MapArea {
