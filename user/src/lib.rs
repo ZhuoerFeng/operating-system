@@ -85,6 +85,8 @@ pub fn getpid() -> isize { sys_getpid() }
 pub fn fork() -> isize { sys_fork() }
 pub fn exec(path: &str) -> isize { sys_exec(path) }
 pub fn spawn(path: &str) -> isize { sys_spawn(path) }
+pub fn mail_read(buf: &mut[u8]) -> isize { sys_mail_read(buf.as_ptr() as *mut u8, buf.len()) }
+pub fn mail_write(pid: usize, buf: &[u8] ) -> isize { sys_mail_write(pid, buf.as_ptr() as *mut u8, buf.len() as usize) }
 pub fn wait(exit_code: &mut i32) -> isize {
     loop {
         match sys_waitpid(-1, exit_code as *mut _) {

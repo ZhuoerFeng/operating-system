@@ -1,5 +1,6 @@
 mod pipe;
 mod stdio;
+mod mail;
 
 use crate::mm::UserBuffer;
 pub trait File : Send + Sync {
@@ -9,3 +10,4 @@ pub trait File : Send + Sync {
 
 pub use pipe::{Pipe, make_pipe};
 pub use stdio::{Stdin, Stdout};
+pub use mail::{MailBox, MailBoxBuffer};
