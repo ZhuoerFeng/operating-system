@@ -150,6 +150,27 @@ impl PageTable {
     }
 }
 
+pub fn check_table_exist(token: usize, ptr: *const u8, len: usize) -> bool {
+    let page_table = PageTable::from_token(token);
+    let mut start = ptr as usize;
+    let end = start + len;
+    let mut flag = true;
+    while start < end {
+        let start_va = VirtAddr::from(start);
+        let mut vpn = start_va.floor();
+        let mut ppn = page_table.translate(vpn);
+        if let None = ppn {
+            flag = false;
+            break;
+        }
+        vpn.step();
+        let mut end_va: VirtAddr = vpn.into();
+        end_va = end_va.min(VirtAddr::from(end));
+        start = end_va.into();
+    }
+    flag
+}
+
 pub fn translated_byte_buffer(token: usize, ptr: *const u8, len: usize) -> Vec<&'static mut [u8]> {
     let page_table = PageTable::from_token(token);
     let mut start = ptr as usize;

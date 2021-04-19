@@ -23,7 +23,7 @@ pub use processor::{
     take_current_task,
     schedule,
 };
-pub use manager::add_task;
+pub use manager::{add_task, find_mailbox, clear_mailbox};
 pub use pid::{PidHandle, pid_alloc, KernelStack};
 
 pub enum IntervalRelationship {
@@ -161,6 +161,8 @@ pub fn suspend_current_and_run_next() {
 pub fn exit_current_and_run_next(exit_code: i32) {
     // take from Processor
     let task = take_current_task().unwrap();
+    let pid = task.pid.0;
+    clear_mailbox(pid);
     // **** hold current PCB lock
     let mut inner = task.acquire_inner_lock();
     // Change status to Zombie
