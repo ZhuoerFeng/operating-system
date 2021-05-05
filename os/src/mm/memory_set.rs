@@ -13,7 +13,8 @@ use crate::config::{
     PAGE_SIZE,
     TRAMPOLINE,
     TRAP_CONTEXT,
-    USER_STACK_SIZE
+    USER_STACK_SIZE,
+    MMIO,
 };
 
 extern "C" {
@@ -33,6 +34,10 @@ lazy_static! {
     pub static ref KERNEL_SPACE: Arc<Mutex<MemorySet>> = Arc::new(Mutex::new(
         MemorySet::new_kernel()
     ));
+}
+
+pub fn kernel_token() -> usize {
+    KERNEL_SPACE.lock().token()
 }
 
 pub struct MemorySet {
@@ -71,7 +76,6 @@ impl MemorySet {
             }
         }
     }
-
     pub fn remove_area_with_start_vpn(&mut self, start_vpn: VirtPageNum) {
         if let Some((idx, area)) = self.areas.iter_mut().enumerate()
             .find(|(_, area)| area.vpn_range.get_start() == start_vpn) {
@@ -139,6 +143,15 @@ impl MemorySet {
             MapType::Identical,
             MapPermission::R | MapPermission::W,
         ), None);
+        println!("mapping memory-mapped registers");
+        for pair in MMIO {
+            memory_set.push(MapArea::new(
+                (*pair).0.into(),
+                ((*pair).0 + (*pair).1).into(),
+                MapType::Identical,
+                MapPermission::R | MapPermission::W,
+            ), None);
+        }
         memory_set
     }
     /// Include sections in elf and trampoline and TrapContext and user stack,

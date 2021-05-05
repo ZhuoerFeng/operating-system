@@ -5,15 +5,6 @@ use spin::Mutex;
 use lazy_static::*;
 use crate::fs::{MailBox};
 
-pub use super::processor::{
-    run_tasks,
-    current_task,
-    current_user_token,
-    current_trap_cx,
-    take_current_task,
-    schedule,
-};
-
 pub struct TaskManager {
     ready_queue: VecDeque<Arc<TaskControlBlock>>,
     map: BTreeMap<usize, Arc<MailBox>>,
@@ -70,5 +61,3 @@ pub fn find_mailbox(pid: usize) -> Arc<MailBox> {
 pub fn clear_mailbox(pid: usize) -> bool {
     TASK_MANAGER.lock().clear_mailbox(pid)
 }
-
-

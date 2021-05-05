@@ -5,16 +5,17 @@ mod manager;
 mod processor;
 mod pid;
 
-use crate::loader::{get_app_data_by_name};
+use crate::fs::{open_file, OpenFlags};
 use crate::config::{PAGE_SIZE_BITS};
 use crate::mm::{VirtAddr, VirtPageNum, MapPermission};
-use lazy_static::*;
+
 use switch::__switch;
 use task::{TaskControlBlock, TaskStatus};
 use alloc::sync::Arc;
 use manager::fetch_task;
-
+use lazy_static::*;
 pub use context::TaskContext;
+
 pub use processor::{
     run_tasks,
     current_task,
@@ -90,6 +91,7 @@ pub fn check_match(v_start: VirtAddr, v_end: VirtAddr) -> bool {
     matching
 }
 
+
 pub fn set_current_priority(task_prio: isize) {
     let task = current_task().unwrap();
     let mut task_inner = task.acquire_inner_lock();
@@ -143,12 +145,6 @@ pub fn suspend_current_and_run_next() {
     let task_cx_ptr2 = task_inner.get_task_cx_ptr2();
     // Change status to Ready
     task_inner.task_status = TaskStatus::Ready;
-
-    // let mut new_t = get_time_ms();
-    // task_inner.task_time = new_t as isize - inner.last_t;
-    // task_inner.last_t = new_t;
-    // task_inner.task_stride += (BIG_STRIDE as isize) / (inner.task_prio as isize);  
-
     drop(task_inner);
     // ---- release current PCB lock
 
@@ -167,10 +163,8 @@ pub fn exit_current_and_run_next(exit_code: i32) {
     let mut inner = task.acquire_inner_lock();
     // Change status to Zombie
     inner.task_status = TaskStatus::Zombie;
-
     // Record exit code
     inner.exit_code = exit_code;
-
     // do not move to its parent but under initproc
 
     // ++++++ hold initproc PCB lock here
@@ -196,9 +190,11 @@ pub fn exit_current_and_run_next(exit_code: i32) {
 }
 
 lazy_static! {
-    pub static ref INITPROC: Arc<TaskControlBlock> = Arc::new(
-        TaskControlBlock::new(get_app_data_by_name("initproc").unwrap())
-    );
+    pub static ref INITPROC: Arc<TaskControlBlock> = Arc::new({
+        let inode = open_file("initproc", OpenFlags::RDONLY).unwrap();
+        let v = inode.read_all();
+        TaskControlBlock::new(v.as_slice())
+    });
 }
 
 pub fn add_initproc() {
