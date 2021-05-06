@@ -8,7 +8,7 @@ use lazy_static::*;
 use bitflags::*;
 use alloc::vec::Vec;
 use spin::Mutex;
-use super::File;
+use super::{File, Stat, StatMode};
 use crate::mm::UserBuffer;
 
 pub struct OSInode {
@@ -156,4 +156,23 @@ impl File for OSInode {
         }
         total_write_size
     }
+    fn get_stat(&self) -> Stat {
+        let mut inner = self.inner.lock();
+        let mut stat = Stat::new();
+        stat.nlink = get_stat(inner.inode.inode_id);
+        stat.mode = StatMode::FILE;
+        stat
+    }
+}
+
+pub fn linkat(old_name: &str, new_name: &str, flag: usize) -> bool {
+    ROOT_INODE.linkat(old_name, new_name, flag)
+}
+
+pub fn unlinkat(old_name: &str) -> bool {
+    ROOT_INODE.unlinkat(old_name)
+}
+
+pub fn get_stat(id: u32) -> u32 {
+    ROOT_INODE.count_nlink(id)
 }

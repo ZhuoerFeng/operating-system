@@ -1,4 +1,4 @@
-use super::File;
+use super::{File, Stat};
 use alloc::sync::{Arc, Weak};
 use spin::Mutex;
 use crate::mm::{
@@ -163,5 +163,8 @@ impl File for Pipe {
                 }
             }
         }
+    }
+    fn get_stat(&self) -> Stat {
+        Stat::new()
     }
 }
