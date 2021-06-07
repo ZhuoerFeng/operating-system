@@ -47,7 +47,7 @@ pub fn main() -> i32 {
                     for (cidx, cmd_line) in pipes.iter().enumerate() {
                         println!("{}", cmd_line);
                         println!("{}", cidx);
-                        let args: Vec<_> = cmd_line.split(' ').filter(|&arg| {arg.trim().len() != 0 } ).collect();
+                        let args: Vec<_> = cmd_line.split(' ').collect();
                         let mut args_copy: Vec<String> = args
                         .iter()
                         .map(|&arg| {
@@ -104,7 +104,6 @@ pub fn main() -> i32 {
                                 ftmp1 = false;
                             }
                         }
-                        // println!("idx is {}, input is {}, input is {}", cidx, input, output);
                         let mut args_addr: Vec<*const u8> = args_copy
                             .iter()
                             .map(|arg| arg.as_ptr())
@@ -112,7 +111,8 @@ pub fn main() -> i32 {
                         args_addr.push(0 as *const u8);
                         let pid = fork();
                         if pid == 0 {
-                            // input redirection
+                            // input redirection u8);
+                        let pid = fork();
                             if !input.is_empty() {
                                 let input_fd = open(input.as_str(), OpenFlags::RDONLY);
                                 if input_fd == -1 {
@@ -151,6 +151,7 @@ pub fn main() -> i32 {
                             assert_eq!(pid, exit_pid);
                             println!("Shell: Process {} exited with code {}", pid, exit_code);
                         }
+                        // cmd_line.clear();
                     }
                     line.clear();
                 }
