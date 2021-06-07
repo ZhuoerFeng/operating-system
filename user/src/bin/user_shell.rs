@@ -45,8 +45,6 @@ pub fn main() -> i32 {
                     let nametmp2 = "ftmp2".to_string();
                     let odd = false; // 0
                     for (cidx, cmd_line) in pipes.iter().enumerate() {
-                        println!("{}", cmd_line);
-                        println!("{}", cidx);
                         let args: Vec<_> = cmd_line.split(' ').filter(|&arg| {arg.trim().len() != 0 } ).collect();
                         let mut args_copy: Vec<String> = args
                         .iter()
