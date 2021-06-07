@@ -69,11 +69,14 @@ pub struct PageTable {
 
 /// Assume that it won't oom when creating/mapping.
 impl PageTable {
-    pub fn new() -> Self {
-        let frame = frame_alloc().unwrap();
-        PageTable {
-            root_ppn: frame.ppn,
-            frames: vec![frame],
+    pub fn new() -> Option<Self> {
+        if let Some(frame) = frame_alloc() {
+            Some(PageTable {
+                root_ppn: frame.ppn,
+                frames: vec![frame],
+            })
+        } else {
+            None
         }
     }
     /// Temporarily used to get arguments from user space.
@@ -94,9 +97,12 @@ impl PageTable {
                 break;
             }
             if !pte.is_valid() {
-                let frame = frame_alloc().unwrap();
-                *pte = PageTableEntry::new(frame.ppn, PTEFlags::V);
-                self.frames.push(frame);
+                if let Some(frame) = frame_alloc() {
+                    *pte = PageTableEntry::new(frame.ppn, PTEFlags::V);
+                    self.frames.push(frame);
+                } else {
+                    return None;
+                }   
             }
             ppn = pte.ppn();
         }
@@ -120,16 +126,24 @@ impl PageTable {
         result
     }
     #[allow(unused)]
-    pub fn map(&mut self, vpn: VirtPageNum, ppn: PhysPageNum, flags: PTEFlags) {
-        let pte = self.find_pte_create(vpn).unwrap();
-        assert!(!pte.is_valid(), "vpn {:?} is mapped before mapping", vpn);
-        *pte = PageTableEntry::new(ppn, flags | PTEFlags::V);
+    pub fn map(&mut self, vpn: VirtPageNum, ppn: PhysPageNum, flags: PTEFlags) -> bool {
+        if let Some(pte) = self.find_pte_create(vpn) {
+            assert!(!pte.is_valid(), "vpn {:?} is mapped before mapping", vpn);
+            *pte = PageTableEntry::new(ppn, flags | PTEFlags::V);
+            true
+        } else {
+            false
+        }
     }
     #[allow(unused)]
-    pub fn unmap(&mut self, vpn: VirtPageNum) {
-        let pte = self.find_pte_create(vpn).unwrap();
-        assert!(pte.is_valid(), "vpn {:?} is invalid before unmapping", vpn);
-        *pte = PageTableEntry::empty();
+    pub fn unmap(&mut self, vpn: VirtPageNum) -> bool {
+        if let Some(pte) = self.find_pte_create(vpn) {
+            assert!(pte.is_valid(), "vpn {:?} is invalid before unmapping", vpn);
+            *pte = PageTableEntry::empty();
+            true
+        } else {
+            false
+        }
     }
     pub fn translate(&self, vpn: VirtPageNum) -> Option<PageTableEntry> {
         self.find_pte(vpn)

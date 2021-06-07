@@ -17,6 +17,7 @@ use user_lib::{
     fork,
     exec,
     waitpid,
+    flush,
     open,
     OpenFlags,
     close,
@@ -29,6 +30,7 @@ pub fn main() -> i32 {
     println!("Rust user shell");
     let mut line: String = String::new();
     print!(">> ");
+    flush();
     loop {
         let c = getchar();
         match c {
@@ -120,17 +122,20 @@ pub fn main() -> i32 {
                     line.clear();
                 }
                 print!(">> ");
+                flush();
             }
             BS | DL => {
                 if !line.is_empty() {
                     print!("{}", BS as char);
                     print!(" ");
                     print!("{}", BS as char);
+                    flush();
                     line.pop();
                 }
             }
             _ => {
                 print!("{}", c as char);
+                flush();
                 line.push(c as char);
             }
         }

@@ -107,20 +107,22 @@ pub fn translate_va(ptr: usize) -> usize {
     res
 }
 
-pub fn insert_va(v_start: VirtAddr, v_end: VirtAddr, permission: MapPermission) -> bool {
+pub fn insert_va(v_start: VirtAddr, v_end: VirtAddr, permission: MapPermission) -> isize {
     if check_conflict(v_start, v_end) { // true for no conflict
         let task = current_task().unwrap();
         let mut task_inner = task.acquire_inner_lock();
-        task_inner.memory_set.insert_framed_area(
+        if task_inner.memory_set.insert_framed_area(
             v_start, 
             v_end,
             permission
-        );
+        ) == false {
+            return -1;
+        }
         drop(task_inner);
-        true
+        1
     } else {
         println!("Fing conlict in writter");
-        false
+        2
     }
 }
 

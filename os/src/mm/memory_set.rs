@@ -46,23 +46,29 @@ pub struct MemorySet {
 }
 
 impl MemorySet {
-    pub fn new_bare() -> Self {
-        Self {
-            page_table: PageTable::new(),
-            areas: Vec::new(),
+    pub fn new_bare() -> Option<Self> {
+        if let Some(pt) = PageTable::new() {
+            Some(
+                Self {
+                    page_table: pt,
+                    areas: Vec::new(),
+                }
+            )
+        } else {
+            None
         }
     }
     pub fn token(&self) -> usize {
         self.page_table.token()
     }
     /// Assume that no conflicts.
-    pub fn insert_framed_area(&mut self, start_va: VirtAddr, end_va: VirtAddr, permission: MapPermission) {
+    pub fn insert_framed_area(&mut self, start_va: VirtAddr, end_va: VirtAddr, permission: MapPermission) -> bool {
         self.push(MapArea::new(
             start_va,
             end_va,
             MapType::Framed,
             permission,
-        ), None);
+        ), None)
     }
     pub fn remove_framed_area(&mut self, start_va: VirtAddr, end_va: VirtAddr) {
         for area in &mut self.areas {
@@ -83,24 +89,27 @@ impl MemorySet {
             self.areas.remove(idx);
         }
     }
-    fn push(&mut self, mut map_area: MapArea, data: Option<&[u8]>) {
-        map_area.map(&mut self.page_table);
+    fn push(&mut self, mut map_area: MapArea, data: Option<&[u8]>) -> bool {
+        if map_area.map(&mut self.page_table) == false {
+            return false;
+        }
         if let Some(data) = data {
             map_area.copy_data(&mut self.page_table, data);
         }
         self.areas.push(map_area);
+        return true;
     }
     /// Mention that trampoline is not collected by areas.
-    fn map_trampoline(&mut self) {
+    fn map_trampoline(&mut self) -> bool {
         self.page_table.map(
             VirtAddr::from(TRAMPOLINE).into(),
             PhysAddr::from(strampoline as usize).into(),
             PTEFlags::R | PTEFlags::X,
-        );
+        )
     }
     /// Without kernel stacks.
     pub fn new_kernel() -> Self {
-        let mut memory_set = Self::new_bare();
+        let mut memory_set = Self::new_bare().unwrap();
         // map trampoline
         memory_set.map_trampoline();
         // map kernel sections
@@ -157,7 +166,7 @@ impl MemorySet {
     /// Include sections in elf and trampoline and TrapContext and user stack,
     /// also returns user_sp and entry point.
     pub fn from_elf(elf_data: &[u8]) -> (Self, usize, usize) {
-        let mut memory_set = Self::new_bare();
+        let mut memory_set = Self::new_bare().unwrap();
         // map trampoline
         memory_set.map_trampoline();
         // map program headers of elf, with U flag
@@ -211,22 +220,29 @@ impl MemorySet {
         ), None);
         (memory_set, user_stack_top, elf.header.pt2.entry_point() as usize)
     }
-    pub fn from_existed_user(user_space: &MemorySet) -> MemorySet {
-        let mut memory_set = Self::new_bare();
-        // map trampoline
-        memory_set.map_trampoline();
-        // copy data sections/trap_context/user_stack
-        for area in user_space.areas.iter() {
-            let new_area = MapArea::from_another(area);
-            memory_set.push(new_area, None);
-            // copy data from another space
-            for vpn in area.vpn_range {
-                let src_ppn = user_space.translate(vpn).unwrap().ppn();
-                let dst_ppn = memory_set.translate(vpn).unwrap().ppn();
-                dst_ppn.get_bytes_array().copy_from_slice(src_ppn.get_bytes_array());
+    pub fn from_existed_user(user_space: &MemorySet) -> Option<MemorySet> {
+        if let Some(mut memory_set) = Self::new_bare() {
+            // map trampoline
+            if memory_set.map_trampoline() == false {
+                return None;
             }
+            // copy data sections/trap_context/user_stack
+            for area in user_space.areas.iter() {
+                let new_area = MapArea::from_another(area);
+                if memory_set.push(new_area, None) == false {
+                    return None;
+                }
+                // copy data from another space
+                for vpn in area.vpn_range {
+                    let src_ppn = user_space.translate(vpn).unwrap().ppn();
+                    let dst_ppn = memory_set.translate(vpn).unwrap().ppn();
+                    dst_ppn.get_bytes_array().copy_from_slice(src_ppn.get_bytes_array());
+                }
+            }
+            Some(memory_set)
+        } else {
+            None
         }
-        memory_set
     }
     pub fn activate(&self) {
         let satp = self.page_table.token();
@@ -275,20 +291,26 @@ impl MapArea {
             map_perm: another.map_perm,
         }
     }
-    pub fn map_one(&mut self, page_table: &mut PageTable, vpn: VirtPageNum) {
+    pub fn map_one(&mut self, page_table: &mut PageTable, vpn: VirtPageNum) -> bool {
         let ppn: PhysPageNum;
         match self.map_type {
             MapType::Identical => {
                 ppn = PhysPageNum(vpn.0);
             }
             MapType::Framed => {
-                let frame = frame_alloc().unwrap();
-                ppn = frame.ppn;
-                self.data_frames.insert(vpn, frame);
+                if let Some(frame) = frame_alloc() {
+                    ppn = frame.ppn;
+                    self.data_frames.insert(vpn, frame);
+                } else {
+                    return false;
+                }
             }
         }
         let pte_flags = PTEFlags::from_bits(self.map_perm.bits).unwrap();
-        page_table.map(vpn, ppn, pte_flags);
+        if page_table.map(vpn, ppn, pte_flags) == false {
+            return false;
+        }
+        return true;
     }
     pub fn unmap_one(&mut self, page_table: &mut PageTable, vpn: VirtPageNum) {
         match self.map_type {
@@ -299,10 +321,13 @@ impl MapArea {
         }
         page_table.unmap(vpn);
     }
-    pub fn map(&mut self, page_table: &mut PageTable) {
+    pub fn map(&mut self, page_table: &mut PageTable) -> bool {
         for vpn in self.vpn_range {
-            self.map_one(page_table, vpn);
+            if self.map_one(page_table, vpn) == false {
+                return false;
+            }
         }
+        return true;
     }
     pub fn unmap(&mut self, page_table: &mut PageTable) {
         for vpn in self.vpn_range {

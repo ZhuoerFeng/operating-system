@@ -6,20 +6,21 @@
 
 #[macro_use]
 pub mod console;
-mod syscall;
+pub mod ch8;
 mod lang_items;
-
-pub use crate::console::STDOUT;
+mod syscall;
 
 extern crate alloc;
+extern crate core;
 #[macro_use]
 extern crate bitflags;
 
-use syscall::*;
 use buddy_system_allocator::LockedHeap;
+pub use console::{flush, STDIN, STDOUT};
+pub use syscall::*;
 use alloc::vec::Vec;
 
-const USER_HEAP_SIZE: usize = 32768;
+const USER_HEAP_SIZE: usize = 16384;
 
 static mut HEAP_SPACE: [u8; USER_HEAP_SIZE] = [0; USER_HEAP_SIZE];
 
@@ -71,37 +72,6 @@ bitflags! {
     }
 }
 
-pub fn dup(fd: usize) -> isize { sys_dup(fd) }
-
-const AT_FDCWD: isize = -100;
-
-pub fn open(path: &str, flags: OpenFlags) -> isize {
-    sys_openat(AT_FDCWD as usize, path, flags.bits, OpenFlags::RDWR.bits)
-}
-
-pub fn close(fd: usize) -> isize { sys_close(fd) }
-pub fn pipe(pipe_fd: &mut [usize]) -> isize { sys_pipe(pipe_fd) }
-pub fn read(fd: usize, buf: &mut [u8]) -> isize { sys_read(fd, buf) }
-pub fn write(fd: usize, buf: &[u8]) -> isize { sys_write(fd, buf) }
-
-pub fn link(old_path: &str, new_path: &str) -> isize {
-    sys_linkat(AT_FDCWD as usize, old_path, AT_FDCWD as usize, new_path, 0)
-}
-
-pub fn unlink(path: &str) -> isize {
-    sys_unlinkat(AT_FDCWD as usize, path, 0)
-}
-
-pub fn fstat(fd: usize, st: &Stat) -> isize {
-    sys_fstat(fd, st)
-}
-
-pub fn exit(exit_code: i32) -> ! { sys_exit(exit_code); }
-pub fn yield_() -> isize { sys_yield() }
-
-pub fn mmap(start: usize, len: usize, port: usize) -> isize { sys_mmap(start, len, port) }
-pub fn munmap(start: usize, len: usize) -> isize { sys_munmap(start, len) }
-
 #[repr(C)]
 #[derive(Debug)]
 pub struct TimeVal {
@@ -152,6 +122,55 @@ bitflags! {
     }
 }
 
+const AT_FDCWD: isize = -100;
+
+pub fn open(path: &str, flags: OpenFlags) -> isize {
+    sys_openat(AT_FDCWD as usize, path, flags.bits, OpenFlags::RDWR.bits)
+}
+
+pub fn close(fd: usize) -> isize {
+    if fd == STDOUT {
+        console::flush();
+    }
+    sys_close(fd)
+}
+
+pub fn read(fd: usize, buf: &mut [u8]) -> isize {
+    sys_read(fd, buf)
+}
+
+pub fn write(fd: usize, buf: &[u8]) -> isize {
+    sys_write(fd, buf)
+}
+
+pub fn link(old_path: &str, new_path: &str) -> isize {
+    sys_linkat(AT_FDCWD as usize, old_path, AT_FDCWD as usize, new_path, 0)
+}
+
+pub fn unlink(path: &str) -> isize {
+    sys_unlinkat(AT_FDCWD as usize, path, 0)
+}
+
+pub fn fstat(fd: usize, st: &Stat) -> isize {
+    sys_fstat(fd, st)
+}
+
+pub fn mail_read(buf: &mut [u8]) -> isize {
+    sys_mail_read(buf)
+}
+
+pub fn mail_write(pid: usize, buf: &[u8]) -> isize {
+    sys_mail_write(pid, buf)
+}
+
+pub fn exit(exit_code: i32) -> ! {
+    console::flush();
+    sys_exit(exit_code);
+}
+
+pub fn yield_() -> isize {
+    sys_yield()
+}
 
 pub fn get_time() -> isize {
     let time = TimeVal::new();
@@ -161,22 +180,31 @@ pub fn get_time() -> isize {
     }
 }
 
+pub fn getpid() -> isize {
+    sys_getpid()
+}
+
+pub fn fork() -> isize {
+    sys_fork()
+}
+
+pub fn exec(path: &str, args: &[*const u8]) -> isize {
+    sys_exec(path, args)
+}
+
 pub fn set_priority(prio: isize) -> isize {
     sys_set_priority(prio)
 }
 
-pub fn getpid() -> isize { sys_getpid() }
-pub fn fork() -> isize { sys_fork() }
-pub fn exec(path: &str, args: &[*const u8]) -> isize { sys_exec(path, args) }
-pub fn spawn(path: &str) -> isize { sys_spawn(path) }
-pub fn mail_read(buf: &mut[u8]) -> isize { sys_mail_read(buf.as_ptr() as *mut u8, buf.len()) }
-pub fn mail_write(pid: usize, buf: &[u8] ) -> isize { sys_mail_write(pid, buf.as_ptr() as *mut u8, buf.len() as usize) }
 pub fn wait(exit_code: &mut i32) -> isize {
     loop {
         match sys_waitpid(-1, exit_code as *mut _) {
-            -2 => { yield_(); }
-            // -1 or a real pid
-            exit_pid => return exit_pid,
+            -2 => {
+                sys_yield();
+            }
+            n => {
+                return n;
+            }
         }
     }
 }
@@ -184,15 +212,34 @@ pub fn wait(exit_code: &mut i32) -> isize {
 pub fn waitpid(pid: usize, exit_code: &mut i32) -> isize {
     loop {
         match sys_waitpid(pid as isize, exit_code as *mut _) {
-            -2 => { yield_(); }
-            // -1 or a real pid
-            exit_pid => return exit_pid,
+            -2 => {
+                sys_yield();
+            }
+            n => {
+                return n;
+            }
         }
     }
 }
+
 pub fn sleep(period_ms: usize) {
     let start = get_time();
     while get_time() < start + period_ms as isize {
         sys_yield();
     }
 }
+
+pub fn mmap(start: usize, len: usize, prot: usize) -> isize {
+    sys_mmap(start, len, prot)
+}
+
+pub fn munmap(start: usize, len: usize) -> isize {
+    sys_munmap(start, len)
+}
+
+pub fn spawn(path: &str) -> isize {
+    sys_spawn(path)
+}
+
+pub fn dup(fd: usize) -> isize { sys_dup(fd) }
+pub fn pipe(pipe_fd: &mut [usize]) -> isize { sys_pipe(pipe_fd) }
